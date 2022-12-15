@@ -1,0 +1,10 @@
+cookie:
+  expiry_days: 1
+  key: FR5GxVAse3t0NG0cg3lB2IQc0LjVIjWnQsxrqAuMtQatu3ykLP
+  name: streamlit-auth-cookie
+credentials:
+  usernames:
+    username:
+      email: email
+      name: name
+      password: $2b$12$Cjlx9blW0VGBEoQkJSWwFOmUj03llFIHBPIhQrVqja9AY2JGqZqhe
