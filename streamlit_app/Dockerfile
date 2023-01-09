@@ -10,4 +10,3 @@ CMD streamlit run Semantic-Search.py \
     --browser.serverAddress="0.0.0.0" \
     --server.enableCORS false \
     --browser.gatherUsageStats false
-    
