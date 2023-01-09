@@ -1,33 +1,25 @@
+import argparse
+import glob
 import itertools
 import logging
+import math
 import os
-from collections import defaultdict
-from dataclasses import dataclass
+from collections import defaultdict, namedtuple
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import h5py
 import numpy as np
+import pyarrow.parquet as pq
 import torch
 import torch.nn as nn
 from sentence_transformers import SentenceTransformer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 from tqdm import tqdm
 
-import math
-from collections import namedtuple
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import List, Union
-import argparse
-import os
-import time
-import glob
-
-import pyarrow.parquet as pq
-from torch.utils.data import IterableDataset
-
 logging.basicConfig(level=logging.INFO)
+
 
 @dataclass
 class TableLoader:
@@ -46,6 +38,7 @@ class TableLoader:
         self.column_names = self.table.schema.names
         self.num_columns = len(self.column_names)
         self.name = Path(self.file_or_path).name
+
 
 class TableDataset(IterableDataset):
     """PyTorch iterable style dataset for single table."""
@@ -81,8 +74,8 @@ class TableDataset(IterableDataset):
         TableBatch = namedtuple("TableBatch", ("table_name", "batch_id", "data"))
         batch_data = {col_name: [str(c) for c in col_data.tolist()] for col_name, col_data in df_batch.items()}
         return TableBatch(table_name=self.ds_table.name, batch_id=self.batch_id + 1, data=batch_data)
-    
-    
+
+
 @dataclass
 class TableInput:
     """Wrapper class for table input data.
@@ -160,11 +153,11 @@ class EmbedTableColumns:
         self.table_input = table_input
         self.model_name = model_name.replace("/", "-")
         self.table_name = table_name
-        
+
         self.dataloader = DataLoader(dataset, batch_size=1, drop_last=False)
         self.stop_after_n = len(self.dataloader) if stop_after_n is None else stop_after_n
         self.verbose = verbose
-        
+
         logging.info(
             f"Table Name: {table_name}, "
             f"Num rows: {dataset.ds_table.num_rows}, "
@@ -238,25 +231,26 @@ class EmbedTableColumns:
                     compression="gzip",
                     chunks=(2, self.embed_dim),
                 )
-        
+
+
 def main():
-    ''' Create and save embeddings'''
-    
+    """Create and save embeddings"""
+
     try:
 
         parser = argparse.ArgumentParser(description="Inputs and outputs")
         parser.add_argument("-i", "--input_file_or_path", type=str)
-        parser.add_argument("-m", "--model_name", type=str, default='all-MiniLM-L6-v2')
+        parser.add_argument("-m", "--model_name", type=str, default="all-MiniLM-L6-v2")
         # parser.add_argument('-ms', '--models_str', type=str,
         #                     default='all-MiniLM-L6-v2 msmarco-MiniLM-L6-cos-v5 average_word_embeddings_glove.6B.300d',
         #                     help="Examples: -ms 'model1 model2 model3'")
         parser.add_argument("-n", "--num_rows_batch", type=int, default=1024)
         parser.add_argument("-s", "--stop_after_n", type=int, default=None)
-        parser.add_argument("-o", "--output_dir", type=str, default='/opt/ml/processing/output')
+        parser.add_argument("-o", "--output_dir", type=str, default="/opt/ml/processing/output")
         args = parser.parse_args()
-        
+
         # models_list = args.models_str.split(' ')
-        
+
         input_file_or_path = args.input_file_or_path
         model_name = args.model_name
         output_dir = args.output_dir
@@ -270,25 +264,19 @@ def main():
             logging.info(f"Creating and saving {model_name} embeddings for {directory}")
 
             table_input = TableInput(
-                file_or_path = f'{input_file_or_path}/{directory}',
-                model_name_or_path = model_name,
-                num_rows_batch = args.num_rows_batch
+                file_or_path=f"{input_file_or_path}/{directory}",
+                model_name_or_path=model_name,
+                num_rows_batch=args.num_rows_batch,
             )
 
-            embedding_obj = EmbedTableColumns(
-                table_input=table_input,
-                stop_after_n=args.stop_after_n
-            )
+            embedding_obj = EmbedTableColumns(table_input=table_input, stop_after_n=args.stop_after_n)
 
             result = embedding_obj.run()
 
-            embedding_obj.save(
-                output_dir=args.output_dir, 
-                data=result
-            )
+            embedding_obj.save(output_dir=args.output_dir, data=result)
 
             logging.info(f"Success! {model_name} embeddings saved to {output_dir}.")
-        
+
         logging.info("\nEmbedding creation complete.")
         logging.info(f"\nContents of {output_dir}:")
         for file in glob.glob(output_dir, recursive=True):
@@ -297,7 +285,6 @@ def main():
     except Exception as e:
         logging.error(e, exc_info=True)
 
+
 if __name__ == "__main__":
     main()
-    
-    

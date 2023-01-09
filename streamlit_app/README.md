@@ -6,11 +6,11 @@
 ```
     python -m venv .venv
 ```
-2. Activate virtual environment 
+2. Activate virtual environment
 ```
     source .venv/bin/activate
 ```
-3. Install libraries in requirements.txt 
+3. Install libraries in requirements.txt
 ```
     pip install -r requirements.txt
 ```
@@ -21,7 +21,7 @@
     - lambda_embed_arn
     - lambda_query_arn
 ```
-5. Run app 
+5. Run app
 ```
     streamlit run app.py
 ```

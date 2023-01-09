@@ -5,14 +5,14 @@
 2. A web app enabling users to search for the k-nearest neighbors to a provided input.
 
 Services used: Step Functions, Glue, SageMaker Processing, Lambda, OpenSearch, S3, ECR, Fargate, ALB
-Embeddings are created using [SentenceTransformers](https://www.sbert.net/). 
-By default the following models are used: all-MiniLM-L6-v2, all-distilroberta-v1, average_word_embeddings_glove.6B.300d 
+Embeddings are created using [SentenceTransformers](https://www.sbert.net/).
+By default the following models are used: all-MiniLM-L6-v2, all-distilroberta-v1, average_word_embeddings_glove.6B.300d
 
 ![Architecture](architecture.png)
 
 ### Deployment prerequisites
 1. [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
-2. [Docker](https://docs.docker.com/get-docker/) running in the background 
+2. [Docker](https://docs.docker.com/get-docker/) running in the background
 
 ### How do I use this pipeline and web app?
 1. Customize username, password, and any other desired configs in 'config.yaml'.
