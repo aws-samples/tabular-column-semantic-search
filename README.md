@@ -1,22 +1,3 @@
-<<<<<<< HEAD
-## My Project
-
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This project is licensed under the Apache-2.0 License.
-
-=======
 # Tabular Column Semantic Search
 
 ### This app creates the following:
@@ -25,7 +6,10 @@ This project is licensed under the Apache-2.0 License.
 
 Services used: Step Functions, Glue, SageMaker Processing, Lambda, OpenSearch, S3, ECR, Fargate, ALB
 Embeddings are created using [SentenceTransformers](https://www.sbert.net/).
-By default the following models are used: all-MiniLM-L6-v2, all-distilroberta-v1, average_word_embeddings_glove.6B.300d
+By default the following models are used: 
+- `all-MiniLM-L6-v2`, 
+- `all-distilroberta-v1`, 
+- `average_word_embeddings_glove.6B.300d`
 
 ![Architecture](architecture.png)
 
@@ -95,4 +79,3 @@ $ cdk destroy
  * `cdk diff`        compare deployed stack with current state
  * `cdk docs`        open CDK documentation
  * `cdk destroy`     destroy existing stack
->>>>>>> blog-code
