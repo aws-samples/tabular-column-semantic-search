@@ -41,7 +41,6 @@ max_batches = config["max_batches"]
 local_cpu_architecture = config["local_cpu_architecture"]
 
 s3_bucket_name = f"{resources_name_prefix}-{account_id}-{region}"
-model_list = models.replace(" ", "").split(",")
 
 #####################################
 # Hash and store user creds for web app authentication
