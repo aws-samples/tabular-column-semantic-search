@@ -41,7 +41,6 @@ max_batches = config["max_batches"]
 local_cpu_architecture = config["local_cpu_architecture"]
 
 s3_bucket_name = f"{resources_name_prefix}-{account_id}-{region}"
-model_list = models.replace(" ", "").split(",")
 
 #####################################
 # Hash and store user creds for web app authentication
@@ -188,7 +187,7 @@ class CdkSemanticSearchPipelineStack(Stack):
 
         # For each embedding model, create parallel SM Processing jobs embed column data
         input_data_localpath = "/opt/ml/processing/input/data"
-        for model_name in model_list:
+        for model_name in models:
 
             # Define SageMaker Processing job to embed column data
             sm_processing_json = {
