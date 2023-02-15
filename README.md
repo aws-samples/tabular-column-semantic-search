@@ -4,21 +4,21 @@
 1. An automated pipeline for embedding column data from CSVs and indexing the embeddings to OpenSearch.
 2. A web app enabling users to search for the approximate nearest neighbors to a provided input.
 
-Services used: 
-- Step Functions
-- Glue
-- Amazon SageMaker Processing
-- Lambda
-- Amazon OpenSearch Service 
-- S3
-- ECR
-- Fargate
-- ALB
+Services used:
+- [AWS Step Functions](https://docs.aws.amazon.com/step-functions/?id=docs_gateway)
+- [AWS Glue](https://docs.aws.amazon.com/glue/?id=docs_gateway)
+- [Amazon SageMaker Processing](https://docs.aws.amazon.com/sagemaker/?id=docs_gateway)
+- [AWS Lambda](https://docs.aws.amazon.com/lambda/?id=docs_gateway)
+- [Amazon OpenSearch Service](https://docs.aws.amazon.com/opensearch-service/?id=docs_gateway)
+- [Amazon S3](https://docs.aws.amazon.com/s3/?id=docs_gateway)
+- [Amazon ECR](http://aws.amazon.com/ecr/)
+- [AWS Fargate](https://docs.aws.amazon.com/ecs/index.html)
+- [Application Load Balancer (ALB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html)
 
 Embeddings are created using [SentenceTransformers](https://www.sbert.net/).
-By default the following models are used: 
-- `all-MiniLM-L6-v2`, 
-- `all-distilroberta-v1`, 
+By default the following models are used:
+- `all-MiniLM-L6-v2`,
+- `all-distilroberta-v1`,
 - `average_word_embeddings_glove.6B.300d`
 
 ![Architecture](architecture.png)
@@ -29,14 +29,15 @@ By default the following models are used:
 
 ### How do I use this pipeline and web app?
 1. Customize username, password, and any other desired configs in `config.yaml`.
-2. Deploy resources by following the steps [below](#steps-to-deploy). **Recommended**: Deploy CDK from a cloud based instance such as EC2 or Cloud9.
+2. Deploy resources by following the steps [below](#steps-to-deploy).
+        **Recommended**: Deploy CDK from a cloud based instance such as EC2 or Cloud9.
 3. Once deployed, upload CSV files with column headings to the `data/csv/input/file` or `data/csv/input/batch` paths of the S3 bucket created during deployment. Files uploaded to `data/csv/input/file` will be individually processed automatically upon upload. Files uploaded to `data/csv/input/batch` will be processed in batch when the pipeline is manually triggered. During pipeline execution, input data will be automatically embedded and indexed to OpenSearch. After successful indexing, input data is moved to `data/csv/processed/`. You can track the pipeline status in the Step Function State Machine console.
     * To upload batch CSV files, run the script [run_pipeline.py](tools/run_pipeline.py) from the commandline:
         The default options for the script will upload sample batch dasets from [sample-batch-datasets.json](sample-batch-datasets.json) to the S3 bucket (`<DESTINATION_BUCKET>/data/csv/input/batch`). And invoke the Lambda function that starts pipeline.
         ```
             python tools/run_pipeline.py --destination_bucket <DESTINATION_BUCKET> --input_mode batch --batch_datasets_file sample-batch-datasets.json
         ```
-    * To upload a single CSV file, run the same script [run_pipeline.py](tools/run_pipeline.py) with the following 
+    * To upload a single CSV file, run the same script [run_pipeline.py](tools/run_pipeline.py) with the following
         ```
             python tools/run_pipeline.py --destination_bucket <DESTINATION_BUCKET> --input_mode file --file_or_url <LOCAL_OR_REMOTE_CSV_PATH>
         ```
