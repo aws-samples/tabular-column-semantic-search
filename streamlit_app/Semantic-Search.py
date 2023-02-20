@@ -1,7 +1,6 @@
 import os
 
 import streamlit as st
-import streamlit_authenticator as stauth
 import yaml
 from app_functions import (
     display_results_table,
@@ -93,24 +92,5 @@ def main():
                 else:
                     st.warning("No results found. Make sure OpenSearch contains indexed embeddings for the selected model.")
 
-
-def auth_main():
-    """Authenticate user and run app"""
-
-    with open("auth.yaml") as file:
-        config = yaml.load(file, Loader=yaml.SafeLoader)
-
-    authenticator = stauth.Authenticate(config["credentials"], config["cookie"]["name"], config["cookie"]["key"], config["cookie"]["expiry_days"])
-
-    _, authentication_status, _ = authenticator.login("Login", "main")
-
-    if authentication_status:
-        main()
-    elif not authentication_status:
-        st.error("Username/password is incorrect")
-    elif authentication_status is None:
-        st.warning("Please enter your username and password")
-
-
 if __name__ == "__main__":
-    auth_main()
+    main()

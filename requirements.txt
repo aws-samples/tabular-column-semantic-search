@@ -2,6 +2,6 @@ aws-cdk-lib
 boto3
 botocore
 constructs
+pyOpenSSL
 PyYAML
 s3fs
-streamlit_authenticator

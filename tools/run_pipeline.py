@@ -18,16 +18,21 @@ from pathlib import Path
 
 import boto3
 import pandas as pd
+import yaml
 from utils import configure_logging
 
 _ = configure_logging("run-pipeline")
 
+with open("config.yaml") as file:
+    config = yaml.load(file, Loader=yaml.SafeLoader)
+
+resources_name_prefix = config["resources_name_prefix"]
 
 def invoke(batch_prefix: str = "data/csv/input/batch", region: str = "us-east-1"):
 
     lambda_client = boto3.client("lambda", region_name=region)
     lambda_input = {"batch_prefix": batch_prefix}
-    lambda_fn_name = [f for f in lambda_client.list_functions()["Functions"] if "invoke-step-functions" in f["FunctionName"]][0]["FunctionName"]
+    lambda_fn_name = [f for f in lambda_client.list_functions()["Functions"] if f"{resources_name_prefix}-invoke-step-functions" in f["FunctionName"]][0]["FunctionName"]
 
     try:
         response = lambda_client.invoke(

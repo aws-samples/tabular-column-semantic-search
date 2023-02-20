@@ -1,27 +1,29 @@
-import aws_cdk as cdk
-import streamlit_authenticator as stauth
-import yaml
-from aws_cdk import Duration, Size, Stack
-from aws_cdk import aws_ec2 as ec2
-from aws_cdk import aws_ecr_assets as ecr_assets
-from aws_cdk import aws_ecs as ecs
-from aws_cdk import aws_ecs_patterns as ecs_patterns
-from aws_cdk import aws_glue as glue
-from aws_cdk import aws_iam as iam
-from aws_cdk import aws_lambda as lambda_
-from aws_cdk import aws_lambda_event_sources as event_sources
-from aws_cdk import aws_logs as logs
-from aws_cdk import aws_opensearchservice as opensearch
-from aws_cdk import aws_s3 as s3
-from aws_cdk import aws_s3_deployment as s3_deploy
-from aws_cdk import aws_stepfunctions as sfn
-from aws_cdk import aws_stepfunctions_tasks as sfn_tasks
+from aws_cdk import (
+    Aws,
+    CfnOutput, 
+    Duration,
+    RemovalPolicy,  
+    Stack, 
+    aws_ec2 as ec2,
+    aws_ecr_assets as ecr_assets,
+    aws_glue as glue,
+    aws_iam as iam,
+    aws_lambda as lambda_,
+    aws_lambda_event_sources as event_sources,
+    aws_logs as logs,
+    aws_opensearchservice as opensearch,
+    aws_s3 as s3,
+    aws_s3_deployment as s3_deploy,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as sfn_tasks
+)
 from constructs import Construct
+import yaml
 
 #####################################
-# Get pipeline configs
-account_id = cdk.Aws.ACCOUNT_ID
-region = cdk.Aws.REGION
+# Get configs
+account_id = Aws.ACCOUNT_ID
+region = Aws.REGION
 
 with open("config.yaml") as file:
     config = yaml.load(file, Loader=yaml.SafeLoader)
@@ -34,31 +36,12 @@ glue_max_concurrent_runs = config["glue_max_concurrent_runs"]
 sm_processing_instance_count = config["sm_processing_instance_count"]
 sm_processing_instance_type = config["sm_processing_instance_type"]
 opensearch_instance_type = config["opensearch_instance_type"]
-opensearch_domain_name = config["opensearch_domain_name"]
 opensearch_volume_size = config["opensearch_volume_size"]
 models = config["models"]
 max_batches = config["max_batches"]
 local_cpu_architecture = config["local_cpu_architecture"]
 
 s3_bucket_name = f"{resources_name_prefix}-{account_id}-{region}"
-
-#####################################
-# Hash and store user creds for web app authentication
-auth_dict = {
-    config["username"]: {
-        "email": "email",
-        "name": "name",
-        "password": stauth.Hasher([config["password"]]).generate()[0],
-    }
-}
-
-filename = "./streamlit_app/auth.yaml"
-with open(filename) as file:
-    auth = yaml.load(file, Loader=yaml.SafeLoader)
-auth["credentials"]["usernames"] = auth_dict
-with open(filename, "w") as file:
-    file.write(yaml.dump(auth))
-
 
 #####################################
 # Define CDK stack
@@ -101,7 +84,7 @@ class CdkSemanticSearchPipelineStack(Stack):
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
             versioned=True,
-            removal_policy=cdk.RemovalPolicy.DESTROY,
+            removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
         )
 
@@ -118,13 +101,35 @@ class CdkSemanticSearchPipelineStack(Stack):
         s3_bucket.grant_read_write(glue_role)
 
         # Include bucket name in Cfn output
-        cdk.CfnOutput(self, "S3 Bucket Name", value=s3_bucket.bucket_name)
+        CfnOutput(self, "S3 Bucket Name", value=s3_bucket.bucket_name)
 
         # Include bucket console url in Cfn output
-        cdk.CfnOutput(
+        CfnOutput(
             self,
             "S3 Bucket Console URL",
             value=f"https://{region}.console.aws.amazon.com/s3/buckets/{s3_bucket.bucket_name}",
+        )
+
+        ####################################
+        # Create OpenSearch Domain
+        self.opensearch_domain = opensearch.Domain(
+            self,
+            "OpenSearch Domain",
+            domain_name=resources_name_prefix,
+            version=opensearch.EngineVersion.OPENSEARCH_1_3,
+            capacity=opensearch.CapacityConfig(data_node_instance_type=opensearch_instance_type, data_nodes=1),
+            ebs=opensearch.EbsOptions(volume_size=opensearch_volume_size, volume_type=ec2.EbsDeviceVolumeType.GP3),
+            enforce_https=True,
+            node_to_node_encryption=True,
+            encryption_at_rest=opensearch.EncryptionAtRestOptions(enabled=True),
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
+        # Include domain console URL in Cfn output
+        CfnOutput(
+            self,
+            "OpenSearch Domain Console URL",
+            value=f"https://{region}.console.aws.amazon.com/esv3/home?region={region}#opensearch/domains/{self.opensearch_domain.domain_name}",
         )
 
         #####################################
@@ -149,7 +154,7 @@ class CdkSemanticSearchPipelineStack(Stack):
             default_arguments={"--enable-auto-scaling": "true", "--enable-job-insights": "true"},
         )
         # Set cdk removal policy
-        glue_transform_job.apply_removal_policy(cdk.RemovalPolicy.DESTROY)
+        glue_transform_job.apply_removal_policy(RemovalPolicy.DESTROY)
 
         # Create Sfn task for Glue job
         task0_glue_parquet_transform = sfn_tasks.GlueStartJobRun(
@@ -288,16 +293,25 @@ class CdkSemanticSearchPipelineStack(Stack):
             "Lambda to index OpenSearch",
             function_name=resources_name_prefix + "-index-opensearch",
             code=lambda_.DockerImageCode.from_image_asset("./assets/lambda/index_opensearch/"),
-            environment={"domain_name": opensearch_domain_name, "processed_csv_s3_path": processed_csv_s3_path},
+            environment={"domain_name": self.opensearch_domain.domain_name, "processed_csv_s3_path": processed_csv_s3_path},
             memory_size=2084,
             timeout=Duration.minutes(5),
         )
 
         # Set cdk removal policy for function
-        lambda_index_opensearch.apply_removal_policy(cdk.RemovalPolicy.DESTROY)
+        lambda_index_opensearch.apply_removal_policy(RemovalPolicy.DESTROY)
         # Add permissions for function
         lambda_index_opensearch.role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonOpenSearchServiceReadOnlyAccess"))
         s3_bucket.grant_read(lambda_index_opensearch)
+        self.opensearch_domain.add_access_policies(
+            # Grant function read/write permissions to all indicies
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                principals=[lambda_index_opensearch.role],
+                actions=["es:ESHttpPut", "es:ESHttpPost", "es:ESHttpGet", "es:ESHttpHead"],
+                resources=[f"arn:aws:es:{region}:{account_id}:domain/{self.opensearch_domain.domain_name}/*"],
+            )
+        )
 
         # Create Step Functions task for lambda_index_opensearch
         task2_lambda_index_opensearch = sfn_tasks.LambdaInvoke(
@@ -324,7 +338,7 @@ class CdkSemanticSearchPipelineStack(Stack):
             timeout=Duration.minutes(5),
         )
         # Set cdk removal policy for function
-        lambda_cleanup.apply_removal_policy(cdk.RemovalPolicy.DESTROY)
+        lambda_cleanup.apply_removal_policy(RemovalPolicy.DESTROY)
         # Add permissions for function
         s3_bucket.grant_read_write(lambda_cleanup)
 
@@ -357,7 +371,7 @@ class CdkSemanticSearchPipelineStack(Stack):
         )
 
         # Include State Machine console url in Cfn output
-        cdk.CfnOutput(
+        CfnOutput(
             self,
             "State Machine Console URL",
             value=f"https://{region}.console.aws.amazon.com/states/home?region={region}#/statemachines/view/{sfn_state_machine.state_machine_arn}",
@@ -384,7 +398,7 @@ class CdkSemanticSearchPipelineStack(Stack):
             timeout=Duration.seconds(30),
         )
         # Set cdk removal policy for function
-        lambda_invoke_sfn.apply_removal_policy(cdk.RemovalPolicy.DESTROY)
+        lambda_invoke_sfn.apply_removal_policy(RemovalPolicy.DESTROY)
         # Add permissions for lambda_invoke_sfn
         sfn_state_machine.grant_start_execution(lambda_invoke_sfn)
 
@@ -399,117 +413,28 @@ class CdkSemanticSearchPipelineStack(Stack):
 
         ####################################
         # Create Lambda to query OpenSearch
-        lambda_query_opensearch = lambda_.DockerImageFunction(
+        self.lambda_query_opensearch = lambda_.DockerImageFunction(
             self,
             "Lambda query OpenSearch",
             function_name=resources_name_prefix + "-query-opensearch",
             code=lambda_.DockerImageCode.from_image_asset("./assets/lambda/query_opensearch/"),
-            environment={"domain_name": opensearch_domain_name},
+            environment={"domain_name": self.opensearch_domain.domain_name},
             memory_size=2084,
             timeout=Duration.minutes(1),
         )
 
+        # Set provisioned concurrency
+        self.lambda_query_opensearch.add_alias("Live", provisioned_concurrent_executions=1)
         # Set cdk removal policy for function
-        lambda_query_opensearch.apply_removal_policy(cdk.RemovalPolicy.DESTROY)
+        self.lambda_query_opensearch.apply_removal_policy(RemovalPolicy.DESTROY)
         # Add permissions for function
-        lambda_query_opensearch.role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonOpenSearchServiceReadOnlyAccess"))
-
-        ####################################
-        # Create OpenSearch Domain
-        opensearch_domain = opensearch.Domain(
-            self,
-            "OpenSearch Domain",
-            domain_name=opensearch_domain_name,
-            version=opensearch.EngineVersion.OPENSEARCH_1_3,
-            capacity=opensearch.CapacityConfig(data_node_instance_type=opensearch_instance_type, data_nodes=1),
-            ebs=opensearch.EbsOptions(volume_size=opensearch_volume_size, volume_type=ec2.EbsDeviceVolumeType.GP3),
-            enforce_https=True,
-            node_to_node_encryption=True,
-            encryption_at_rest=opensearch.EncryptionAtRestOptions(enabled=True),
-            access_policies=[
-                # Grant lambda functions read/write permissions to all indicies
-                iam.PolicyStatement(
-                    effect=iam.Effect.ALLOW,
-                    principals=[lambda_index_opensearch.role, lambda_query_opensearch.role],
-                    actions=["es:ESHttpPut", "es:ESHttpPost", "es:ESHttpGet", "es:ESHttpHead"],
-                    resources=[f"arn:aws:es:{region}:{account_id}:domain/{opensearch_domain_name}/*"],
-                )
-            ],
-            removal_policy=cdk.RemovalPolicy.DESTROY,
-        )
-
-        # Include domain console URL in Cfn output
-        cdk.CfnOutput(
-            self,
-            "OpenSearch Domain Console URL",
-            value=f"https://{region}.console.aws.amazon.com/esv3/home?region={region}#opensearch/domains/{opensearch_domain_name}",
-        )
-
-        ####################################
-        # Create Lambda to embed web app payload
-        lambda_embed_payload = lambda_.DockerImageFunction(
-            self,
-            "Lambda embed payload",
-            function_name=resources_name_prefix + "-embed-payload",
-            code=lambda_.DockerImageCode.from_image_asset("./assets/lambda/embed_payload/"),
-            memory_size=2084,
-            ephemeral_storage_size=Size.mebibytes(1024),
-            timeout=Duration.minutes(1),
-        )
-
-        # Set cdk removal policy for function
-        lambda_embed_payload.apply_removal_policy(cdk.RemovalPolicy.DESTROY)
-
-        ###################################
-        # Deploy Streamlit app on Fargate fronted by ALB
-
-        # Create VPC
-        vpc = ec2.Vpc(self, "VPC", max_azs=2)
-
-        # Create ECS cluster
-        ecs_cluster = ecs.Cluster(self, "ECS Cluster", cluster_name=f"{resources_name_prefix}-cluster", vpc=vpc)
-
-        if local_cpu_architecture == "ARM64":
-            ecs_cpu_architecture = ecs.CpuArchitecture.ARM64
-        else:
-            ecs_cpu_architecture = ecs.CpuArchitecture.X86_64
-
-        # Build and push app container to ECR
-        app_image = ecs.ContainerImage.from_asset("streamlit_app")
-
-        # Create Application Load Balanced Fargate Service
-        load_balanced_fargate_service = ecs_patterns.ApplicationLoadBalancedFargateService(
-            self,
-            "ALB Fargate Service",
-            service_name=f"{resources_name_prefix}-alb-fargate-service",
-            cluster=ecs_cluster,
-            cpu=512,
-            desired_count=1,
-            task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
-                image=app_image,
-                container_port=8501,
-                environment={
-                    "lambda_embed_arn": lambda_embed_payload.function_arn,
-                    "lambda_query_arn": lambda_query_opensearch.function_arn,
-                    "opensearch_domain": opensearch_domain.domain_name,
-                },
-            ),
-            runtime_platform=ecs.RuntimePlatform(cpu_architecture=ecs_cpu_architecture),
-            memory_limit_mib=2048,
-            public_load_balancer=True,
-            load_balancer_name=f"{resources_name_prefix}-alb",
-        )
-
-        # Add permissions for fargate service task role to invoke lambda functions
-        lambda_embed_payload.grant_invoke(load_balanced_fargate_service.task_definition.task_role)
-        lambda_query_opensearch.grant_invoke(load_balanced_fargate_service.task_definition.task_role)
-
-        # Setup task auto-scaling
-        scaling = load_balanced_fargate_service.service.auto_scale_task_count(max_capacity=10)
-
-        scaling.scale_on_cpu_utilization(
-            "ECS scaling policy",
-            target_utilization_percent=50,
-            scale_in_cooldown=Duration.seconds(60),
-            scale_out_cooldown=Duration.seconds(60),
+        self.lambda_query_opensearch.role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonOpenSearchServiceReadOnlyAccess"))
+        self.opensearch_domain.add_access_policies(
+            # Grant function read/write permissions to all indicies
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                principals=[self.lambda_query_opensearch.role],
+                actions=["es:ESHttpPut", "es:ESHttpPost", "es:ESHttpGet", "es:ESHttpHead"],
+                resources=[f"arn:aws:es:{region}:{account_id}:domain/{self.opensearch_domain.domain_name}/*"],
+            )
         )
