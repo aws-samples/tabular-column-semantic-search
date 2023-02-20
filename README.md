@@ -33,7 +33,7 @@ By default the following models are used:
         **Recommended**: Deploy CDK from a cloud based instance such as EC2 or Cloud9.
 3. Once deployed, upload CSV files with column headings to the `data/csv/input/file` or `data/csv/input/batch` paths of the S3 bucket created during deployment. Files uploaded to `data/csv/input/file` will be individually processed automatically upon upload. Files uploaded to `data/csv/input/batch` will be processed in batch when the pipeline is manually triggered. During pipeline execution, input data will be automatically embedded and indexed to OpenSearch. After successful indexing, input data is moved to `data/csv/processed/`. You can track the pipeline status in the Step Function State Machine console.
     * To upload batch CSV files, run the script [run_pipeline.py](tools/run_pipeline.py) from the commandline:
-        The default options for the script will upload sample batch dasets from [sample-batch-datasets.json](sample-batch-datasets.json) to the S3 bucket (`<DESTINATION_BUCKET>/data/csv/input/batch`). And invoke the Lambda function that starts pipeline.
+        The default options for the script will upload sample batch datasets from [sample-batch-datasets.json](sample-batch-datasets.json) to the S3 bucket (`<DESTINATION_BUCKET>/data/csv/input/batch`). And invoke the Lambda function that starts pipeline.
         ```
             python tools/run_pipeline.py --destination_bucket <DESTINATION_BUCKET> --input_mode batch --batch_datasets_file sample-batch-datasets.json
         ```
