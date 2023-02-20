@@ -41,7 +41,7 @@ By default the following models are used:
         ```
             python tools/run_pipeline.py --destination_bucket <DESTINATION_BUCKET> --input_mode file --file_or_url <LOCAL_OR_REMOTE_CSV_PATH>
         ```
-4. You will receive sign-in credentials and the web app URL via email, at the email you specified in [config.yaml](config.yaml). Log in to the web app using these credentials. You will be prompted to reset your password during the first login.
+4. After deployment, you will receive sign-in credentials and the web app URL via email, at the email you specified in [config.yaml](config.yaml). Log in to the web app using these credentials. You will be prompted to reset your password during the first login.
     * Note the demo creates and uses a self-signed certificate for the web app, which may not be trusted by your web browser by default. Self-signed certificates should not be used beyond testing. For best security, use a certificate signed be a credible CA. 
 5. Use the web app to query OpenSearch and explore results.
 
@@ -77,16 +77,16 @@ Bootstrap your default AWS account/region. Note you may incur AWS charges for da
 $ cdk bootstrap
 ```
 
-Deploy the pipeline to your default AWS account/region. Note Docker needs to be running in the background. Resources will incur charges in your account while the pipeline is deployed.
+Deploy the pipeline to your default AWS account/region. Note Docker needs to be running in the background. During deployment, you will be prompted to confirm deployment of each stack. Resources will incur charges in your account while deployed.
 
 ```
-$ cdk deploy
+$ cdk deploy --all
 ```
 
-To tear down the pipeline, run the following aptly named command.
+To tear down the pipeline, run the following aptly named command. You will be prompted to confirm deletion.
 
 ```
-$ cdk destroy
+$ cdk destroy --all
 ```
 
 ## Useful commands
