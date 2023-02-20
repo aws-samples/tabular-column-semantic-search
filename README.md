@@ -17,8 +17,8 @@ Services used:
 
 Embeddings are created using [SentenceTransformers](https://www.sbert.net/).
 By default the following models are used:
-- `all-MiniLM-L6-v2`,
-- `all-distilroberta-v1`,
+- `all-MiniLM-L6-v2`
+- `all-distilroberta-v1`
 - `average_word_embeddings_glove.6B.300d`
 
 ![Architecture](architecture.png)
@@ -28,7 +28,7 @@ By default the following models are used:
 2. [Docker](https://docs.docker.com/get-docker/) running in the background
 
 ### How do I use this pipeline and web app?
-1. Customize username, password, and any other desired configs in `config.yaml`.
+1. Customize email, username, and any other desired configs in [config.yaml](config.yaml).
 2. Deploy resources by following the steps [below](#steps-to-deploy).
         **Recommended**: Deploy CDK from a cloud based instance such as EC2 or Cloud9.
 3. Once deployed, upload CSV files with column headings to the `data/csv/input/file` or `data/csv/input/batch` paths of the S3 bucket created during deployment. Files uploaded to `data/csv/input/file` will be individually processed automatically upon upload. Files uploaded to `data/csv/input/batch` will be processed in batch when the pipeline is manually triggered. During pipeline execution, input data will be automatically embedded and indexed to OpenSearch. After successful indexing, input data is moved to `data/csv/processed/`. You can track the pipeline status in the Step Function State Machine console.
@@ -41,9 +41,9 @@ By default the following models are used:
         ```
             python tools/run_pipeline.py --destination_bucket <DESTINATION_BUCKET> --input_mode file --file_or_url <LOCAL_OR_REMOTE_CSV_PATH>
         ```
-4. Open the web app URL (ALBFargateServiceServiceURL) output by `cdk deploy` or found in the CloudFormation stack Outputs.
-5. Log in using credentials specified in [config.yaml](config.yaml).
-6. Use the web app to query OpenSearch and visualize results.
+4. You will receive sign-in credentials and the web app URL via email, at the email you specified in [config.yaml](config.yaml). Log in to the web app using these credentials. You will be prompted to reset your password during the first login.
+    * Note the demo creates and uses a self-signed certificate for the web app, which may not be trusted by your web browser by default. Self-signed certificates should not be used beyond testing. For best security, use a certificate signed be a credible CA. 
+5. Use the web app to query OpenSearch and explore results.
 
 ### Steps to deploy
 Create a virtual environment:

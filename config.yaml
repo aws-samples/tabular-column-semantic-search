@@ -1,9 +1,8 @@
-# Set user name and password for demo web app
-username: username
-password: semantic-search-app-password
-
-# Pipeline configs
-resources_name_prefix: cdk-semantic-search-pipeline
+email: YOUR_EMAIL_ADDRESS
+app_username: username
+stack_name: ColumnSemanticSearch
+resources_name_prefix: column-search-uid
+certificate_arn: # Auto populated during deployment
 parquet_s3_path: data/parquet
 processed_csv_s3_path: data/csv/processed
 embeddings_s3_path: embeddings
@@ -11,11 +10,10 @@ glue_max_concurrent_runs: 30
 sm_processing_instance_count: 1
 sm_processing_instance_type: ml.g4dn.xlarge
 opensearch_instance_type: r6g.large.search
-opensearch_domain_name: cdk-semantic-search-domain
 opensearch_volume_size: 30
-models: 
-  - all-MiniLM-L6-v2
-  - all-distilroberta-v1
-  - average_word_embeddings_glove.6B.300d
-max_batches: 10 # Max number of batches to embed from table data (batch: 1024 rows)
-local_cpu_architecture: X86_64 # ARM64 or X86_64. Your local cpu architecture, where web app docker images will be built.
+models:
+- all-MiniLM-L6-v2
+- all-distilroberta-v1
+- average_word_embeddings_glove.6B.300d
+max_batches: 10
+local_cpu_architecture: X86_64
