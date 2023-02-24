@@ -2,6 +2,7 @@ aws-cdk-lib
 boto3
 botocore
 constructs
+pandas
 pyOpenSSL
 PyYAML
 s3fs
