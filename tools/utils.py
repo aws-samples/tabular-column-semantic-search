@@ -1,16 +1,9 @@
-<<<<<<< HEAD
 import boto3
 import logging
 from OpenSSL import crypto
 
 def configure_logging(name: str = None, verbose: bool = False):
     """Set up logging."""
-=======
-import logging
-
-def configure_logging(name: str = None, verbose: bool = False):
-    """Setup logging."""
->>>>>>> main
     logging_level = logging.DEBUG if verbose else logging.INFO
     root_logger = logging.getLogger(__name__ if name is None else name)
     logging.basicConfig(level=logging_level)
@@ -21,7 +14,6 @@ def configure_logging(name: str = None, verbose: bool = False):
     formatter = logging.Formatter("%(levelname)-8s %(message)s")
     ch.setFormatter(formatter)
     root_logger.addHandler(ch)
-<<<<<<< HEAD
     return root_logger
 
 def cert_gen(key_file: str = "private.key", cert_file: str ="selfsigned.crt"):
@@ -73,6 +65,3 @@ def cert_acm_upload(key_file: str = "private.key", cert_file: str = "selfsigned.
 
     except Exception as e:
         logging.error(e)
-=======
-    return root_logger
->>>>>>> main
